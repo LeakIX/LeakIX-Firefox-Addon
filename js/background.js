@@ -11,33 +11,14 @@ function getHostname(url) {
 	return elem.hostname;
 }
 
-function dnsLookup(hostname, callback) {
-	var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'https://api.shodan.io/dns/resolve?key=WagM7oXeNhWvQWjd9ePx2buFiHv2phhq&hostnames=' + hostname, true);
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState == 4) {
-        	try {
-	            var data = JSON.parse(xhr.responseText);
-
-	            if (data[hostname]) {
-	            	callback(data[hostname]);
-	            }
-            }
-	        catch(e) {
-	        	// pass
-	        }
-        }
-    }
-    xhr.send();
-}
-
 function hostLookup(ip, callback) {
 	var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'https://api.shodan.io/shodan/host/' + ip + '?key=WagM7oXeNhWvQWjd9ePx2buFiHv2phhq&minify=true', true);
+    xhr.open('GET', 'https://leakix.net/api/ext/host/' + ip , true);
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
         	try {
 	            var host = JSON.parse(xhr.responseText);
+				console.log(host)
 	            if (!host.error) {
 	            	callback(host);
 	            }
@@ -51,12 +32,18 @@ function hostLookup(ip, callback) {
 }
 
 function updateHost(host, tabId) {
+	var badgeColor = "green"
+	var badgeTextColor = "white"
+	if (host.severity === "critical") {
+		badgeColor = "red"
+		badgeTextColor = "white"
+	}
 	chrome.browserAction.enable(tabId);
-
 	chrome.browserAction.setBadgeText({
-		'text': String(host.ports.length)
+		'text': String(host.leak_count)
 	});
-
+	chrome.browserAction.setBadgeBackgroundColor({color: badgeColor});
+	chrome.browserAction.setBadgeTextColor({color: badgeTextColor});
 	// Update the globals so the popup can access the info collected in the background
 	HOST = host;
 }
@@ -66,7 +53,7 @@ function getHost() {
 }
 
 function updateBrowserAction(tabId, url) {
-	var host = null;
+	var host = {host:"",severity:"", leak_count:0};
 	var hostname;
 
 	// If the URL doesn't start with http or https then we won't go any further
@@ -82,39 +69,27 @@ function updateBrowserAction(tabId, url) {
 	chrome.browserAction.setBadgeText({
 		text: ''
 	});
-
-	// If we're switching tabs or the URL is already in the cache, try to look up the host information
-	// from the cache.
-	if (hostnameCache[tabId] && hostnameCache[tabId] === hostname) {
-		// We've previously looked up the Shodan host information for this hostname, so use it
-		if (hostCache[tabId]) {
-			updateHost(hostCache[tabId], tabId);
-		}
+	// We've previously looked up the host information for this hostname, so use it
+	if (hostCache[tabId]) {
+		updateHost(hostCache[tabId], tabId);
 	}
 	else {
-		// Resolve the hostname to its IP address, which then gets passed to the actual Shodan host lookup
-		dnsLookup(hostname, function(ip) {
-			hostLookup(ip, function(host) {
-				// Make sure we got a response back for the right ip
-				if (host.ip_str === ip) {
-					// Update the hostname cache so we know when the browseraction needs to get updated
-					hostnameCache[tabId] = hostname;
-					hostCache[tabId] = host;
-
-					updateHost(host, tabId);
-				}
-			})
+		// Query information from LeakIX.net
+		hostLookup(hostname, function(host) {
+			// Update the host cache so we know when the browseraction needs to get updated
+			hostCache[tabId] = host;
+			updateHost(host, tabId);
 		});
 	}
 };
 
 function contextMenuHandler(info, tab) {
-	var shodanUrl = 'https://www.shodan.io';
+	var leakixUrl = 'https://leakix.net';
 	var checkUrl = null;
 
 	// The user has selected some text
 	if (info.selectionText) {
-		shodanUrl += '/search?query=' + encodeURI(info.selectionText);
+		leakixUrl += '/search?q=' + encodeURI('"' + info.selectionText + '"');
 	}
 	else if (info.linkUrl) {
 		checkUrl = info.linkUrl;
@@ -134,13 +109,13 @@ function contextMenuHandler(info, tab) {
 			hostname = hostname.substr(4);
 		}
 
-		shodanUrl += '/search?query=hostname:' + encodeURI(hostname);
+		leakixUrl += '/search?q=host:' + encodeURI(hostname);
 	}
 
 	// If the user's selection changed the base URL then open a new tab
-	if (shodanUrl != 'https://www.shodan.io') {
+	if (leakixUrl !== 'https://leakix.net') {
 		chrome.tabs.create({
-			'url': shodanUrl
+			'url': leakixUrl
 		});
 	}
 }
@@ -175,19 +150,19 @@ chrome.browserAction.setBadgeBackgroundColor({
 	color: '#000'
 });
 
-// Add the ability to search Shodan using the right-click/ context menu
+// Add the ability to search LeakIX using the right-click/ context menu
 chrome.contextMenus.create({
-	'title': 'Search Shodan for link',
+	'title': 'Search LeakIX for link',
 	'contexts': ['link'],
 	'onclick': contextMenuHandler
 });
 chrome.contextMenus.create({
-	'title': 'Search Shodan for current website',
+	'title': 'Search LeakIX for current website',
 	'contexts': ['page'],
 	'onclick': contextMenuHandler
 });
 chrome.contextMenus.create({
-	'title': 'Search Shodan for "%s"',
+	'title': 'Search LeakIX for "%s"',
 	'contexts': ['selection'],
 	'onclick': contextMenuHandler
 });

@@ -6,7 +6,7 @@
 .host h1,
 .host h2 {
 	color: #444;
-  	font-family: 'Myriad Pro', 'Helvetica';
+  	font-family: 'Monospaced, monospace';
 }
 
 .host > ul {

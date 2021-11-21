@@ -3,22 +3,16 @@
 <head>
     <link rel="stylesheet" type="text/css" href="/css/popup.css">
     <link rel="stylesheet" href="/css/bootstrap.css">
-    <link rel="stylesheet" href="/css/font-awesome.min.css">
     <script src="/js/popup.js"></script>
 </head>
 <body>
-	<div class='host'>
-		<h1><i class='icon-globe'></i><span id='ip'></span></h1>
-		<div class='hostnames' id='hostnames'>
+	<div class='container'>
+		<div style="text-align: center;">
+			<h2 id="ip"></h2>
 		</div>
-		<table class="table">
-		    <tbody id='items'>
-		    </tbody>
-		  </table>
+		LeakIX found <span id="leak_count">0</span> issues.
 
-		<h2><i class='icon-th-large'></i>Ports</h2>
-		<ul class='ports' id='ports'>
-		</ul>
+		<h2 class='ports' id='severity'></h2>
 		<div style='clear:both'></div>
 
 		<!-- <div id='vulns'></div> -->
