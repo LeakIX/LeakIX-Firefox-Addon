@@ -37,6 +37,13 @@ function updateHost(host, tabId) {
 	if (host.severity === "critical") {
 		badgeColor = "red"
 		badgeTextColor = "white"
+	} else if (host.severity === "high") {
+		badgeColor = "orange"
+		badgeTextColor = "black"
+	}
+	else if (host.severity === "medium") {
+		badgeColor = "blue"
+		badgeTextColor = "white"
 	}
 	chrome.browserAction.enable(tabId);
 	chrome.browserAction.setBadgeText({
@@ -55,7 +62,6 @@ function getHost() {
 function updateBrowserAction(tabId, url) {
 	var host = {host:"",severity:"", leak_count:0};
 	var hostname;
-
 	// If the URL doesn't start with http or https then we won't go any further
 	if (url.indexOf('http') === -1 && url.indexOf('https') === -1) {
 		return;
@@ -70,14 +76,13 @@ function updateBrowserAction(tabId, url) {
 		text: ''
 	});
 	// We've previously looked up the host information for this hostname, so use it
-	if (hostCache[tabId]) {
-		updateHost(hostCache[tabId], tabId);
-	}
-	else {
+	if (hostCache[hostname]) {
+		updateHost(hostCache[hostname], tabId);
+	} else {
 		// Query information from LeakIX.net
 		hostLookup(hostname, function(host) {
 			// Update the host cache so we know when the browseraction needs to get updated
-			hostCache[tabId] = host;
+			hostCache[hostname] = host;
 			updateHost(host, tabId);
 		});
 	}
@@ -142,6 +147,7 @@ chrome.tabs.onRemoved.addListener(function (id) {
 	delete hostnameCache[id];
 	delete hostCache[id];
 });
+
 
 // Set the button to disabled until we get some actual data
 chrome.browserAction.disable();
